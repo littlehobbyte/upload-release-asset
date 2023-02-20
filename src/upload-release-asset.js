@@ -14,8 +14,7 @@ async function run() {
     const assetName = core.getInput('asset_name', { required: true });
     // const assetContentType = core.getInput('asset_content_type', { required: true });
 
-    const tag = core.getInput('tag', { required: true })
-        .replace('refs/tags/', '');
+    const tag = core.getInput('tag', { required: true }).replace('refs/tags/', '');
     const contentLength = filePath => fs.statSync(filePath).size;
 
     const getReleaseResponse = await octokit.rest.repos.getReleaseByTag({
