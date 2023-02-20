@@ -6,35 +6,48 @@ async function run() {
   try {
     // Get authenticated GitHub client (Ocktokit): https://github.com/actions/toolkit/tree/master/packages/github#usage
     const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
+    const { owner, repo } = github.context.repo;
 
     // Get the inputs from the workflow file: https://github.com/actions/toolkit/tree/master/packages/core#inputsoutputs
-    const uploadUrl = core.getInput('upload_url', { required: true });
+    // const uploadUrl = core.getInput('upload_url', { required: true });
     const assetPath = core.getInput('asset_path', { required: true });
     const assetName = core.getInput('asset_name', { required: true });
-    const assetContentType = core.getInput('asset_content_type', { required: true });
+    // const assetContentType = core.getInput('asset_content_type', { required: true });
 
-    // Determine content-length for header to upload asset
+    const tag = core.getInput('tag', { required: true })
+        .replace('refs/tags/', '');
     const contentLength = filePath => fs.statSync(filePath).size;
 
-    // Setup headers for API call, see Octokit Documentation: https://octokit.github.io/rest.js/#octokit-routes-repos-upload-release-asset for more information
-    const headers = { 'content-type': assetContentType, 'content-length': contentLength(assetPath) };
-
-    // Upload a release asset
-    // API Documentation: https://developer.github.com/v3/repos/releases/#upload-a-release-asset
-    // Octokit Documentation: https://octokit.github.io/rest.js/#octokit-routes-repos-upload-release-asset
-    const uploadAssetResponse = await octokit.rest.repos.uploadReleaseAsset({
-      url: uploadUrl,
-      headers,
-      name: assetName,
-      file: fs.readFileSync(assetPath)
+    const getReleaseResponse = await octokit.rest.repos.getReleaseByTag({
+      owner,
+      repo,
+      tag
     });
+    // eslint-disable-next-line no-console
+    console.log(`Owner '${owner}', repo: '${repo}', tag: '${tag}'`);
+
+    const {
+      data: { id: releaseId }
+    } = getReleaseResponse;
+    console.log(
+      `releaseId '${releaseId}', assetName: ${assetName}, assetPath: ${assetPath}, contentLength '${contentLength}`
+    );
+
+    const uploadAssetResponse = await octokit.rest.repos.uploadReleaseAsset({
+      owner,
+      repo,
+      release_id: releaseId,
+      name: assetName,
+      data: fs.readFileSync(assetPath)
+    });
+    console.log(`uploaded`);
 
     // Get the browser_download_url for the uploaded release asset from the response
     const {
       data: { browser_download_url: browserDownloadUrl }
     } = uploadAssetResponse;
+    console.log(`browserDownloadUrl ${browserDownloadUrl}`);
 
-    // Set the output variable for use by other actions: https://github.com/actions/toolkit/tree/master/packages/core#inputsoutputs
     core.setOutput('browser_download_url', browserDownloadUrl);
   } catch (error) {
     core.setFailed(error.message);
