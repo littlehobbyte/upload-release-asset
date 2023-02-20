@@ -1815,13 +1815,13 @@ module.exports = require("assert");
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 const core = __webpack_require__(470);
-const { GitHub } = __webpack_require__(469);
+const github = __webpack_require__(469);
 const fs = __webpack_require__(747);
 
 async function run() {
   try {
     // Get authenticated GitHub client (Ocktokit): https://github.com/actions/toolkit/tree/master/packages/github#usage
-    const github = new GitHub(process.env.GITHUB_TOKEN);
+    const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
 
     // Get the inputs from the workflow file: https://github.com/actions/toolkit/tree/master/packages/core#inputsoutputs
     const uploadUrl = core.getInput('upload_url', { required: true });
@@ -1838,7 +1838,7 @@ async function run() {
     // Upload a release asset
     // API Documentation: https://developer.github.com/v3/repos/releases/#upload-a-release-asset
     // Octokit Documentation: https://octokit.github.io/rest.js/#octokit-routes-repos-upload-release-asset
-    const uploadAssetResponse = await github.repos.uploadReleaseAsset({
+    const uploadAssetResponse = await octokit.rest.repos.uploadReleaseAsset({
       url: uploadUrl,
       headers,
       name: assetName,
@@ -1851,7 +1851,7 @@ async function run() {
     } = uploadAssetResponse;
 
     // Set the output variable for use by other actions: https://github.com/actions/toolkit/tree/master/packages/core#inputsoutputs
-    // core.setOutput('browser_download_url', browserDownloadUrl);
+    core.setOutput('browser_download_url', browserDownloadUrl);
   } catch (error) {
     core.setFailed(error.message);
   }
